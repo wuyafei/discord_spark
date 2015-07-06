@@ -1,27 +1,42 @@
+import timeit
+import numpy as np
 window = 360
 
 with open('xmitdb_orig.txt') as f:
     raw_data = f.read()
 
 data = raw_data.strip().split('\n')
-data = [float(x) for x in data]
-size = len(data)
-target = 4083
+data = np.array([float(x) for x in data])
+size = data.shape[0]
+r = 1.55
 
 
 def distance(d1, d2):
-    d = zip(d1, d2)
-    s = sum([(x - y)**2 for (x, y) in d])
-    return s**0.5
+    return np.linalg.norm(d1 - d2)
 
-nn_dist = 99999999.9
-nn_i = -1
-for i in range(0, size - window):
-    if abs(i - target) >= window:
-        dist = distance(data[target: target + window],
-                        data[i: i + window])
-        if dist < nn_dist:
-            nn_dist = dist
-            nn_i = i
-
-print nn_dist, nn_i
+start = timeit.default_timer()
+discords = []
+for i in range(0, size - window + 1):
+    nn_dist = 99999999.9
+    nn_idx = -1
+    early_abandon = False
+    for j in range(0, size - window + 1):
+        if abs(i - j) >= window:
+            dist = distance(data[j: j + window],
+                            data[i: i + window])
+            if dist < r:
+                early_abandon = True
+                break
+            if dist < nn_dist:
+                nn_dist = dist
+                nn_idx = j
+    if early_abandon:
+        continue
+    if len(discords) == 0 or i - discords[-1][0] >= window:
+        discords.append((i, nn_dist))
+    elif nn_dist > discords[-1][1]:
+        discords.pop()
+        discords.append((i, nn_dist))
+print "time cost: ", timeit.default_timer() - start
+for x in discords:
+    print x[0], x[1]
