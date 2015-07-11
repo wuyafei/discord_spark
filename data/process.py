@@ -9,14 +9,19 @@ data = raw_data.strip().split('\n')
 data = np.array([float(x) for x in data])
 size = data.shape[0]
 r = 1.55
-
+distance_cnt = 0
 
 def distance(d1, d2):
+    global distance_cnt
+    distance_cnt += 1
     return np.linalg.norm(d1 - d2)
 
 start = timeit.default_timer()
 discords = []
+early_abandon_idxs = []
 for i in range(0, size - window + 1):
+    if i in early_abandon_idxs:
+        continue
     nn_dist = 99999999.9
     nn_idx = -1
     early_abandon = False
@@ -25,6 +30,7 @@ for i in range(0, size - window + 1):
             dist = distance(data[j: j + window],
                             data[i: i + window])
             if dist < r:
+                early_abandon_idxs.append(j)
                 early_abandon = True
                 break
             if dist < nn_dist:
@@ -40,3 +46,4 @@ for i in range(0, size - window + 1):
 print "time cost: ", timeit.default_timer() - start
 for x in discords:
     print x[0], x[1]
+print 'distance_cnt=', distance_cnt
